@@ -15,8 +15,8 @@ var app = express();
 app.use(morgan("combined"));
 
 // Set application properties
-app.set("host", process.env.HOST || "https://eventefy-facebook.herokuapp.com/");
-app.set("port", process.env.PORT || 8000);
+app.set("host", process.env.HOST || "0.0.0.0");
+app.set("port", process.env.PORT || 4000);
 app.set("x-powered-by", false);
 app.set("etag", false);
 
