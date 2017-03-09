@@ -1,0 +1,10 @@
+language: node_js
+
+before_script:
+  - env
+
+node_js:
+  - "0.12"
+  - "iojs"
+  - "4"
+  - "6"

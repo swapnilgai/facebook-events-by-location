@@ -6,7 +6,7 @@ var morgan = require("morgan");
 var cors = require("cors");
 
 // Own modules
-var EventSearch = require("facebook-events-by-location-core");
+var EventSearch = require("./facebook-events-by-location-core");
 
 // Create the Express object
 var app = express();
@@ -71,6 +71,9 @@ app.get("/events", cors(corsOptions), function(req, res) {
         }
         if (req.query.lng) {
             options.lng = req.query.lng;
+        }
+        if (req.query.limit) {
+            options.limit = req.query.limit;
         }
         if (req.query.distance) {
             options.distance = req.query.distance;
