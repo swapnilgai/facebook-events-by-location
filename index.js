@@ -16,7 +16,7 @@ app.use(morgan("combined"));
 
 // Set application properties
 app.set("host", process.env.HOST || "0.0.0.0");
-app.set("port", process.env.PORT || 4000);
+app.set("port", process.env.PORT || 8000);
 app.set("x-powered-by", false);
 app.set("etag", false);
 
@@ -57,11 +57,12 @@ var corsOptions = {
 // Main route
 app.get("/events", cors(corsOptions), function(req, res) {
 
-    if (!req.query.lat || !req.query.lng) {
-        res.status(500).json({message: "Please specify the lat and lng parameters!"});
-    } else if (!req.query.accessToken && !process.env.FEBL_ACCESS_TOKEN) {
-        res.status(500).json({message: "Please specify an Access Token, either as environment variable odr as accessToken parameter!"});
-    } else {
+    // if (!req.query.lat || !req.query.lng) {
+    //     res.status(500).json({message: "Please specify the lat and lng parameters!"});
+    // } else if (!req.query.accessToken && !process.env.FEBL_ACCESS_TOKEN) {
+    //     res.status(500).json({message: "Please specify an Access Token, either as environment variable odr as accessToken parameter!"});
+    // } else
+    {
 
         var options = {};
 
@@ -71,9 +72,6 @@ app.get("/events", cors(corsOptions), function(req, res) {
         }
         if (req.query.lng) {
             options.lng = req.query.lng;
-        }
-        if (req.query.limit) {
-            options.limit = req.query.limit;
         }
         if (req.query.distance) {
             options.distance = req.query.distance;
@@ -99,16 +97,25 @@ app.get("/events", cors(corsOptions), function(req, res) {
             options.until = req.query.until;
         }
 
+  var layLanArray = req.query.layLanArray.split(',');
+var jsonStr = [];
+for(var i=0;i<layLanArray.length - 1; i=i+2){
+        // Search and handle results
+        options.lat = layLanArray[0];
+        options.lng = layLanArray[i+1]
         // Instantiate EventSearch
         var es = new EventSearch(options);
 
         // Search and handle results
         es.search().then(function (events) {
-            res.json(events);
+          jsonStr.push(events);
+          if(jsonStr.length>=8)
+              res.json(jsonStr);
+
         }).catch(function (error) {
             res.status(500).json(error);
         });
-
+}
     }
 
 });

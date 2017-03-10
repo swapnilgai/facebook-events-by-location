@@ -150,6 +150,7 @@ EventSearch.prototype.search = function () {
                     }
                 });
 
+  console.error(data.length);
                 // Push the remaining places
                 if (tempArray.length > 0) {
                     ids.push(tempArray);
@@ -225,7 +226,7 @@ EventSearch.prototype.search = function () {
                                 eventResultObj.coverPicture = (event.cover ? event.cover.source : null);
                                 eventResultObj.profilePicture = (event.picture ? event.picture.data.url : null);
                                 eventResultObj.description = (event.description ? event.description : null);
-                                eventResultObj.distance = (venue.location ? (self.haversineDistance([venue.location.latitude, venue.location.longitude], [self.latitude, self.longitude], false)*1000).toFixed() : null);
+                                eventResultObj.distance = (venue.location ? (self.haversineDistance([venue.location.latitude, venue.location.longitude], [self.latitude, self.longitude], false)*100000).toFixed() : null);
                                 eventResultObj.startTime = (event.start_time ? event.start_time : null);
                                 eventResultObj.endTime = (event.end_time ? event.end_time : null);
                                 eventResultObj.timeFromNow = self.calculateStarttimeDifference(currentTimestamp, event.start_time);
