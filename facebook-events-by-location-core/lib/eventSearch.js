@@ -22,6 +22,7 @@ var EventSearch = function (options) {
     self.version = options.version ? options.version : "v2.7";
     self.since = options.since || (new Date().getTime()/1000).toFixed();
     self.until = options.until || null;
+    self.latLanArray = options.latLanArray;
     self.schema = schema;
 
 };
@@ -101,194 +102,197 @@ EventSearch.prototype.search = function () {
 
     return new Promise(function (resolve, reject) {
 
-        if (!self.latitude || !self.longitude) {
+         if (!self.latLanArray) {
             var error = {
                 "message": "Please specify the lat and lng parameters!",
                 "code": 1
             };
             console.error(JSON.stringify(error));
             reject(error);
-        } else if (!self.accessToken) {
-            var error = {
-                "message": "Please specify an Access Token, either as environment variable or as accessToken parameter!",
-                "code": 2
-            };
-            console.error(JSON.stringify(error));
-            reject(error);
-        } else {
+        }
+         //else
+        // if (!self.accessToken) {
+        //     var error = {
+        //         "message": "Please specify an Access Token, either as environment variable or as accessToken parameter!",
+        //         "code": 2
+        //     };
+        //     console.error(JSON.stringify(error));
+        //     reject(error);
+        //else
+        else {
+            var count=0;
+            var latLanArray = self.latLanArray.split(',');
+            for(var i=0;i<latLanArray.length - 1; i=i+2){
+              self.latitude = latLanArray[i];
+              self.longitude = latLanArray[i+1];
+              var events = [];
+                var idLimit = 50, //FB only allows 50 ids per /?ids= call
+                    currentTimestamp = (new Date().getTime()/1000).toFixed(),
+                    venuesCount = 0,
+                    venuesWithEvents = 0,
+                    eventsCount = 0,
+                    placeUrl = "https://graph.facebook.com/" + self.version + "/search" +
+                        "?type=place" +
+                        "&q=" + self.query +
+                        "&center=" + self.latitude + "," + self.longitude +
+                        "&distance=" + self.distance +
+                        "&limit=" + self.limit +
+                        "&fields=id" +
+                        "&access_token=" + self.accessToken;
 
-            var idLimit = 50, //FB only allows 50 ids per /?ids= call
-                currentTimestamp = (new Date().getTime()/1000).toFixed(),
-                venuesCount = 0,
-                venuesWithEvents = 0,
-                eventsCount = 0,
-                placeUrl = "https://graph.facebook.com/" + self.version + "/search" +
-                    "?type=place" +
-                    "&q=" + self.query +
-                    "&center=" + self.latitude + "," + self.longitude +
-                    "&distance=" + self.distance +
-                    "&limit=" + self.limit +
-                    "&fields=id" +
-                    "&access_token=" + self.accessToken;
+                //Get places as specified
+                rp.get(placeUrl).then(function(responseBody) {
 
-            //Get places as specified
-            rp.get(placeUrl).then(function(responseBody) {
+                    var ids = [],
+                        tempArray = [],
+                        data = JSON.parse(responseBody).data;
 
-                var ids = [],
-                    tempArray = [],
-                    data = JSON.parse(responseBody).data;
+                    //Set venueCount
+                    venuesCount = data.length;
 
-                //Set venueCount
-                venuesCount = data.length;
-
-                //Create array of 50 places each
-                data.forEach(function(idObj, index, arr) {
-                    tempArray.push(idObj.id);
-                    if (tempArray.length >= idLimit) {
-                        ids.push(tempArray);
-                        tempArray = [];
-                    }
-                });
-
-  console.error(data.length);
-                // Push the remaining places
-                if (tempArray.length > 0) {
-                    ids.push(tempArray);
-                }
-
-                return ids;
-            }).then(function(ids) {
-
-                var urls = [];
-
-                //Create a Graph API request array (promisified)
-                ids.forEach(function(idArray, index, arr) {
-                    var eventsFields = [
-                        "id",
-                        "type",
-                        "name",
-                        "cover.fields(id,source)",
-                        "picture.type(large)",
-                        "description",
-                        "start_time",
-                        "end_time",
-                        "category",
-                        "attending_count",
-                        "declined_count",
-                        "maybe_count",
-                        "noreply_count"
-                    ];
-                    var fields = [
-                        "id",
-                        "name",
-                        "about",
-                        "emails",
-                        "cover.fields(id,source)",
-                        "picture.type(large)",
-                        "location",
-                        "events.fields(" + eventsFields.join(",") + ")"
-                    ]
-                    var eventsUrl = "https://graph.facebook.com/" + self.version + "/" +
-                        "?ids=" + idArray.join(",") +
-                        "&access_token=" + self.accessToken +
-                        "&fields=" + fields.join(",") +
-                        ".since(" + self.since + ")";
-                    if (self.until) {
-                        eventsUrl += ".until(" + self.until + ")";
-                    }
-                    urls.push(rp.get(eventsUrl));
-                });
-
-                return urls;
-
-            }).then(function(promisifiedRequests) {
-
-                //Run Graph API requests in parallel
-                return Promise.all(promisifiedRequests)
-
-            })
-            .then(function(results){
-
-                var events = [];
-
-                //Handle results
-                results.forEach(function(resStr, index, arr) {
-                    var resObj = JSON.parse(resStr);
-                    Object.getOwnPropertyNames(resObj).forEach(function(venueId, index, array) {
-                        var venue = resObj[venueId];
-                        if (venue.events && venue.events.data.length > 0) {
-                            venuesWithEvents++;
-                            venue.events.data.forEach(function(event, index, array) {
-                                var eventResultObj = {};
-                                eventResultObj.id = event.id;
-                                eventResultObj.name = event.name;
-                                eventResultObj.type = event.type;
-                                eventResultObj.coverPicture = (event.cover ? event.cover.source : null);
-                                eventResultObj.profilePicture = (event.picture ? event.picture.data.url : null);
-                                eventResultObj.description = (event.description ? event.description : null);
-                                eventResultObj.distance = (venue.location ? (self.haversineDistance([venue.location.latitude, venue.location.longitude], [self.latitude, self.longitude], false)*100000).toFixed() : null);
-                                eventResultObj.startTime = (event.start_time ? event.start_time : null);
-                                eventResultObj.endTime = (event.end_time ? event.end_time : null);
-                                eventResultObj.timeFromNow = self.calculateStarttimeDifference(currentTimestamp, event.start_time);
-                                eventResultObj.category = (event.category ? event.category : null);
-                                eventResultObj.stats = {
-                                    attending: event.attending_count,
-                                    declined: event.declined_count,
-                                    maybe: event.maybe_count,
-                                    noreply: event.noreply_count
-                                };
-                                eventResultObj.venue = {};
-                                eventResultObj.venue.id = venueId;
-                                eventResultObj.venue.name = venue.name;
-                                eventResultObj.venue.about = (venue.about ? venue.about : null);
-                                eventResultObj.venue.emails = (venue.emails ? venue.emails : null);
-                                eventResultObj.venue.coverPicture = (venue.cover ? venue.cover.source : null);
-                                eventResultObj.venue.profilePicture = (venue.picture ? venue.picture.data.url : null);
-                                eventResultObj.venue.location = (venue.location ? venue.location : null);
-                                events.push(eventResultObj);
-                                eventsCount++;
-                            });
+                    //Create array of 50 places each
+                    data.forEach(function(idObj, index, arr) {
+                        tempArray.push(idObj.id);
+                        if (tempArray.length >= idLimit) {
+                            ids.push(tempArray);
+                            tempArray = [];
                         }
                     });
-                });
 
-                //Sort if requested
-                if (self.sort) {
-                    switch (self.sort) {
-                        case "time":
-                            events.sort(self.compareTimeFromNow);
-                            break;
-                        case "distance":
-                            events.sort(self.compareDistance);
-                            break;
-                        case "venue":
-                            events.sort(self.compareVenue);
-                            break;
-                        case "popularity":
-                            events.sort(self.comparePopularity);
-                            break;
-                        default:
-                            break;
+                    // Push the remaining places
+                    if (tempArray.length > 0) {
+                        ids.push(tempArray);
                     }
-                }
 
-                //Produce result object
-                resolve({events: events, metadata: {venues: venuesCount, venuesWithEvents: venuesWithEvents, events: eventsCount}});
+                    return ids;
+                }).then(function(ids) {
 
-            }).catch(function (e) {
-                var error = {
-                    "message": e,
-                    "code": -1
-                };
-                console.error(JSON.stringify(error));
-                reject(error);
-            });
-        }
+                    var urls = [];
 
-    });
+                    //Create a Graph API request array (promisified)
+                    ids.forEach(function(idArray, index, arr) {
+                        var eventsFields = [
+                            "id",
+                            "type",
+                            "name",
+                            "cover.fields(id,source)",
+                            "picture.type(large)",
+                            "description",
+                            "start_time",
+                            "end_time",
+                            "category",
+                            "attending_count",
+                            "declined_count",
+                            "maybe_count",
+                            "noreply_count"
+                        ];
+                        var fields = [
+                            "id",
+                            "name",
+                            "about",
+                            "emails",
+                            "cover.fields(id,source)",
+                            "picture.type(large)",
+                            "location",
+                            "events.fields(" + eventsFields.join(",") + ")"
+                        ]
+                        var eventsUrl = "https://graph.facebook.com/" + self.version + "/" +
+                            "?ids=" + idArray.join(",") +
+                            "&access_token=" + self.accessToken +
+                            "&fields=" + fields.join(",") +
+                            ".since(" + self.since + ")";
+                        if (self.until) {
+                            eventsUrl += ".until(" + self.until + ")";
+                        }
+                        urls.push(rp.get(eventsUrl));
+                    });
 
-};
+                    return urls;
 
+                }).then(function(promisifiedRequests) {
+
+                    //Run Graph API requests in parallel
+                    return Promise.all(promisifiedRequests)
+
+                })
+                .then(function(results){
+                    //Handle results
+                    count = count+2;
+                    results.forEach(function(resStr, index, arr) {
+                        var resObj = JSON.parse(resStr);
+                        Object.getOwnPropertyNames(resObj).forEach(function(venueId, index, array) {
+                            var venue = resObj[venueId];
+                            if (venue.events && venue.events.data.length > 0) {
+                                venuesWithEvents++;
+                                venue.events.data.forEach(function(event, index, array) {
+                                    var eventResultObj = {};
+                                    eventResultObj.id = event.id;
+                                    eventResultObj.name = event.name;
+                                    eventResultObj.type = event.type;
+                                    eventResultObj.coverPicture = (event.cover ? event.cover.source : null);
+                                    eventResultObj.profilePicture = (event.picture ? event.picture.data.url : null);
+                                    eventResultObj.description = (event.description ? event.description : null);
+                                    eventResultObj.distance = (venue.location ? (self.haversineDistance([venue.location.latitude, venue.location.longitude], [self.latitude, self.longitude], false)*100000).toFixed() : null);
+                                    eventResultObj.startTime = (event.start_time ? event.start_time : null);
+                                    eventResultObj.endTime = (event.end_time ? event.end_time : null);
+                                    eventResultObj.timeFromNow = self.calculateStarttimeDifference(currentTimestamp, event.start_time);
+                                    eventResultObj.category = (event.category ? event.category : null);
+                                    eventResultObj.stats = {
+                                        attending: event.attending_count,
+                                        declined: event.declined_count,
+                                        maybe: event.maybe_count,
+                                        noreply: event.noreply_count
+                                    };
+                                    eventResultObj.venue = {};
+                                    eventResultObj.venue.id = venueId;
+                                    eventResultObj.venue.name = venue.name;
+                                    eventResultObj.venue.about = (venue.about ? venue.about : null);
+                                    eventResultObj.venue.emails = (venue.emails ? venue.emails : null);
+                                    eventResultObj.venue.coverPicture = (venue.cover ? venue.cover.source : null);
+                                    eventResultObj.venue.profilePicture = (venue.picture ? venue.picture.data.url : null);
+                                    eventResultObj.venue.location = (venue.location ? venue.location : null);
+                                    events.push(eventResultObj);
+                                    console.error(events.id);
+                                    eventsCount++;
+                                });
+                            }
+                        });
+                    });
+                    //Sort if requested
+                    if (self.sort) {
+                        switch (self.sort) {
+                            case "time":
+                                events.sort(self.compareTimeFromNow);
+                                break;
+                            case "distance":
+                                events.sort(self.compareDistance);
+                                break;
+                            case "venue":
+                                events.sort(self.compareVenue);
+                                break;
+                            case "popularity":
+                                events.sort(self.comparePopularity);
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                    //Produce result object
+                    if(count>=latLanArray.length){
+                        resolve({events:events});
+                      }
+                }).catch(function (e) {
+                    var error = {
+                        "message": e,
+                        "code": -1
+                    };
+                    console.error(JSON.stringify(error));
+                    reject(error);
+                });
+            }
+         }
+        });
+    };
 EventSearch.prototype.getSchema = function () {
     return this.schema;
 };

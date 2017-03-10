@@ -7,23 +7,18 @@ var cors = require("cors");
 
 // Own modules
 var EventSearch = require("./facebook-events-by-location-core");
-
 // Create the Express object
 var app = express();
-
 // Use morgan for logging
 app.use(morgan("combined"));
-
 // Set application properties
 app.set("host", process.env.HOST || "0.0.0.0");
 app.set("port", process.env.PORT || 8000);
 app.set("x-powered-by", false);
 app.set("etag", false);
-
 // Instantiate CORS whitelist
 var whitelist = [],
     enableAll = false;
-
 // Check if FEBL_CORS_WHITELIST exists
 if (process.env.FEBL_CORS_WHITELIST) {
     if (process.env.FEBL_CORS_WHITELIST.indexOf(",") > -1) {
@@ -39,7 +34,6 @@ if (process.env.FEBL_CORS_WHITELIST) {
 } else {
     enableAll = true;
 }
-
 // CORS middleware handler
 var corsOptions = {
     origin: function(origin, callback){
@@ -56,23 +50,15 @@ var corsOptions = {
 
 // Main route
 app.get("/events", cors(corsOptions), function(req, res) {
-
-    // if (!req.query.lat || !req.query.lng) {
-    //     res.status(500).json({message: "Please specify the lat and lng parameters!"});
+     if (!req.query.latLanArray) {
+         res.status(500).json({message: "Please specify the lat and lng parameters!"});
     // } else if (!req.query.accessToken && !process.env.FEBL_ACCESS_TOKEN) {
     //     res.status(500).json({message: "Please specify an Access Token, either as environment variable odr as accessToken parameter!"});
-    // } else
-    {
-
+     } else
         var options = {};
 
         // Add latitude
-        if (req.query.lat) {
-            options.lat = req.query.lat;
-        }
-        if (req.query.lng) {
-            options.lng = req.query.lng;
-        }
+
         if (req.query.distance) {
             options.distance = req.query.distance;
         }
@@ -96,30 +82,17 @@ app.get("/events", cors(corsOptions), function(req, res) {
         if (req.query.until) {
             options.until = req.query.until;
         }
-
-  var layLanArray = req.query.layLanArray.split(',');
-var jsonStr = [];
-for(var i=0;i<layLanArray.length - 1; i=i+2){
-        // Search and handle results
-        options.lat = layLanArray[0];
-        options.lng = layLanArray[i+1]
-        // Instantiate EventSearch
+        options.latLanArray = req.query.latLanArray;
+        var jsonStr = [];
         var es = new EventSearch(options);
-
         // Search and handle results
         es.search().then(function (events) {
-          jsonStr.push(events);
-          if(jsonStr.length>=8)
-              res.json(jsonStr);
+              res.json(events);
 
         }).catch(function (error) {
             res.status(500).json(error);
         });
-}
-    }
-
 });
-
 // Health check route
 app.get("/health", function(req, res) {
     res.send("OK");
