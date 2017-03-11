@@ -47,7 +47,6 @@ var corsOptions = {
         }
     }
 };
-
 // Main route
 app.get("/events", cors(corsOptions), function(req, res) {
      if (!req.query.latLanArray) {
@@ -56,9 +55,7 @@ app.get("/events", cors(corsOptions), function(req, res) {
     //     res.status(500).json({message: "Please specify an Access Token, either as environment variable odr as accessToken parameter!"});
      } else
         var options = {};
-
         // Add latitude
-
         if (req.query.distance) {
             options.distance = req.query.distance;
         }
