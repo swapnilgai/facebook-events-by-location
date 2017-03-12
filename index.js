@@ -79,11 +79,70 @@ app.get("/events", cors(corsOptions), function(req, res) {
         if (req.query.until) {
             options.until = req.query.until;
         }
-        options.latLanArray = req.query.latLanArray;
+        if(req.query.venueIdArray){
+          options.venueIdArray = req.query.venueIdArray;
+        }
+        if(req.query.eventIdArray){
+          options.eventIdArray = req.query.eventIdArray;
+        }
+        if(req.query.latLanArray){
+          options.latLanArray = req.query.latLanArray;
+        }
         var jsonStr = [];
         var es = new EventSearch(options);
         // Search and handle results
         es.search().then(function (events) {
+              res.json(events);
+
+        }).catch(function (error) {
+            res.status(500).json(error);
+        });
+});
+
+
+app.get("/eventsbyids", cors(corsOptions), function(req, res) {
+     if (!req.query.venueIdArray) {
+         res.status(500).json({message: "Please specify the venue details!"});
+     } else if (!req.query.accessToken && !process.env.FEBL_ACCESS_TOKEN) {
+         res.status(500).json({message: "Please specify an Access Token, either as environment variable odr as accessToken parameter!"});
+     } else
+        var options = {};
+        // Add latitude
+        if (req.query.distance) {
+            options.distance = req.query.distance;
+        }
+        if (req.query.accessToken) {
+            options.accessToken = req.query.accessToken;
+        } else {
+            options.accessToken = process.env.FEBL_ACCESS_TOKEN || null;
+        }
+        if (req.query.query) {
+            options.query = req.query.query;
+        }
+        if (req.query.sort) {
+            options.sort = req.query.sort;
+        }
+        if (req.query.version) {
+            options.version = req.query.version;
+        }
+        if (req.query.since) {
+            options.since = req.query.since;
+        }
+        if (req.query.until) {
+            options.until = req.query.until;
+        }
+        if(req.query.venueIdArray){
+          options.venueIdArray = req.query.venueIdArray;
+        }
+        if(req.query.eventIdArray){
+          options.eventIdArray = req.query.eventIdArray;
+        }
+        if(req.query.latLanArray){
+          options.latLanArray = req.query.latLanArray;
+        }        var jsonStr = [];
+        var es = new EventSearch(options);
+        // Search and handle results
+        es.searchbyid().then(function (events) {
               res.json(events);
 
         }).catch(function (error) {
