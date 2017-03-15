@@ -92,6 +92,7 @@ app.get("/events", cors(corsOptions), function(req, res) {
         var es = new EventSearch(options);
         // Search and handle results
         es.search().then(function (events) {
+        console.error(" len : "+events);
               res.json(events);
 
         }).catch(function (error) {

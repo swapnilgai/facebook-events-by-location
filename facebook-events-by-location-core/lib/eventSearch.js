@@ -125,9 +125,10 @@ EventSearch.prototype.search = function () {
         else {
             var count=0;
             var latLanArray = self.latLanArray.split(',');
-            for(var i=0;i<latLanArray.length - 1; i=i+2){
+            for(var i=0;i<latLanArray.length; i=i+2){
               self.latitude = latLanArray[i];
               self.longitude = latLanArray[i+1];
+                console.error(self.latitude + "  :  " + self.longitude);
               var events = [];
                 var idLimit = 50, //FB only allows 50 ids per /?ids= call
                     currentTimestamp = (new Date().getTime()/1000).toFixed(),
@@ -142,7 +143,6 @@ EventSearch.prototype.search = function () {
                         "&limit=" + self.limit +
                         "&fields=id" +
                         "&access_token=" + self.accessToken;
-                        console.error(placeUrl);
 
                 //Get places as specified
                 rp.get(placeUrl).then(function(responseBody) {
@@ -285,7 +285,21 @@ EventSearch.prototype.search = function () {
                 }).then(function(results){
 
                   if(count>=latLanArray.length){
-                      resolve({events:events});
+                      var out = [];
+
+                      for (var i = 0, l = events.length; i < l; i++) {
+                          var unique = true;
+                          for (var j = 0, k = out.length; j < k; j++) {
+                              if (events[i].id === out[j].id) {
+                                  unique = false;
+                              }
+                          }
+                          if (unique) {
+                              out.push(events[i]);
+                          }
+                      }
+
+                    resolve({events: out});
                     }
                 }).catch(function (e) {
                     var error = {
@@ -334,7 +348,6 @@ EventSearch.prototype.search = function () {
                           "/"+venueIdArray[i] +
                          "?fields=id,cover,about,name" +
                          "&access_token=" + self.accessToken;
-                         //console.error(placeUrl);
                  //Get places as specified
                  rp.get(placeUrl).then(function(responseBody) {
                     venueDetail = JSON.parse(responseBody);
@@ -435,7 +448,6 @@ EventSearch.prototype.search = function () {
                      //Produce result object
 
                  }).then(function(results){
-                   console.error(count);
                    if(count>=venueIdArray.length){
                        resolve({events:events});
                      }
