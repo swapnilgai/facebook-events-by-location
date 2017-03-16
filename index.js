@@ -111,6 +111,9 @@ app.get("/eventsbyids", cors(corsOptions), function(req, res) {
      var eventIdArray = req.query.eventIdArray.split(',');
      var events = [];
      var count = 0;
+     var jsonObj = {
+           "events" : []
+           };
      for(var i=0;i<venueIdArray.length; i++){
         var options = {};
         // Add latitude
@@ -152,12 +155,11 @@ app.get("/eventsbyids", cors(corsOptions), function(req, res) {
         es.searchbyid().then(function (eventObj) {
 
             count++;
-            events.push(eventObj);
+            jsonObj.events.push(eventObj);
             if(count>=venueIdArray.length)
               {
-                console.error(events);
-                  res.json(events);
-
+                console.error(jsonObj);
+                  res.json(jsonObj);
                 }
         }).catch(function (error) {
             res.status(500).json(error);
