@@ -20,14 +20,16 @@ var EventSearch = function (options) {
     self.query = options.query ? encodeURIComponent(options.query) : "";
     self.sort = options.sort ? (allowedSorts.indexOf(options.sort.toLowerCase()) > -1 ? options.sort.toLowerCase() : null) : null;
     self.version = options.version ? options.version : "v2.8";
-    self.since = options.since || (new Date().getTime()/1000).toFixed();
+    //self.since = options.since || (new Date().getTime()/1000).toFixed();
+    self.since = options.since || null;
     self.until = options.until || null;
     self.eventId = null;
     self.latLanArray = options.latLanArray || null;
     self.venueIdArray = options.venueIdArray || null;
     self.eventIdArray = options.eventIdArray || null;
+    self.venueId = options.venueId || null;
+    self.eventId = options.eventId || null;
     self.schema = schema;
-
 };
 
 EventSearch.prototype.calculateStarttimeDifference = function (currentTime, dataString) {
@@ -298,7 +300,6 @@ EventSearch.prototype.search = function () {
                               out.push(events[i]);
                           }
                       }
-
                     resolve({events: out});
                     }
                 }).catch(function (e) {
@@ -331,23 +332,19 @@ EventSearch.prototype.search = function () {
         //  }
         //  else
         return new Promise(function (resolve, reject) {
-          var events = [];
-             var count=0;
              var venueDetail;
-             var venueIdArray = self.venueIdArray.split(',');
-             var eventIdArray = self.eventIdArray.split(',');
-             for(var i=0;i<venueIdArray.length; i++){
-               var events = [];
-               self.eventId = eventIdArray[i];
-                 var idLimit = 50, //FB only allows 50 ids per /?ids= call
-                     currentTimestamp = (new Date().getTime()/1000).toFixed(),
+
+            // for(var i=0;i<venueIdArray.length; i++)
+                     var eventResultObj = {};
+                     var idLimit = 50, //FB only allows 50 ids per /?ids= call
                      venuesCount = 0,
                      venuesWithEvents = 0,
                      eventsCount = 0,
                      placeUrl = "https://graph.facebook.com/" + self.version +
-                          "/"+venueIdArray[i] +
+                          "/"+self.venueId+
                          "?fields=id,cover,about,name" +
                          "&access_token=" + self.accessToken;
+                         console.error(placeUrl);
                  //Get places as specified
                  rp.get(placeUrl).then(function(responseBody) {
                     venueDetail = JSON.parse(responseBody);
@@ -377,19 +374,22 @@ EventSearch.prototype.search = function () {
                                   "?fields=" + fields.join(",") +
                                  "&access_token=" + self.accessToken;
                                  urls.push(rp.get(eventsUrl));
+                                  console.error(eventsUrl);
+                                 //
+
+
                      return urls;
 
                  }).then(function(promisifiedRequests) {
+
                      //Run Graph API requests in parallel
                       return Promise.all(promisifiedRequests);
 
                  }).then(function(results){
-                     //Handle results
 
-                     count++;
+                     //Handle results
                        var event = JSON.parse(results);
 
-                                     var eventResultObj = {};
                                      eventResultObj.id = event.id;
                                      eventResultObj.name = event.name;
                                      eventResultObj.type = event.type;
@@ -399,7 +399,7 @@ EventSearch.prototype.search = function () {
                                      eventResultObj.distance = (event.place.location ? (self.haversineDistance([event.place.location.latitude, event.place.location.longitude], [self.latitude, self.longitude], false)*100000).toFixed() : null);
                                      eventResultObj.startTime = (event.start_time ? event.start_time : null);
                                      eventResultObj.endTime = (event.end_time ? event.end_time : null);
-                                     eventResultObj.timeFromNow = self.calculateStarttimeDifference(currentTimestamp, event.start_time);
+                                     //eventResultObj.timeFromNow = self.calculateStarttimeDifference(currentTimestamp, event.start_time);
                                      eventResultObj.category = (event.category ? event.category : null);
                                      eventResultObj.stats = {
                                          attending: event.attending_count,
@@ -414,17 +414,8 @@ EventSearch.prototype.search = function () {
                                      eventResultObj.venue.about = (venueDetail.about ? venueDetail.about : null);
                                      //eventResultObj.venue.emails = (venueDetail.emails ? venueDetail.emails : null);
                                      eventResultObj.venue.coverPicture = (venueDetail.cover ? venueDetail.cover.source : null);
-
                                      //eventResultObj.venue.profilePicture = (venueDetail.picture ? venueDetail.picture.data.url : null);
                                      eventResultObj.venue.location = (event.place ? event.place.location : null);
-
-
-                                     events.push(eventResultObj);
-
-
-                                     eventsCount++;
-
-
                      //Sort if requested
                      if (self.sort) {
                          switch (self.sort) {
@@ -444,13 +435,14 @@ EventSearch.prototype.search = function () {
                                  break;
                          }
                      }
-                     return events;
+                     return eventResultObj;
                      //Produce result object
 
                  }).then(function(results){
-                   if(count>=venueIdArray.length){
-                       resolve({events:events});
-                     }
+                //   if(count>=venueIdArray.length){
+                     resolve(results);
+                       //resolve({events:events});
+                  //   }
                  }).catch(function (e) {
                      var error = {
                          "message": e,
@@ -459,6 +451,5 @@ EventSearch.prototype.search = function () {
                      console.error(JSON.stringify(error));
                      Promise.reject(error);
                  });
-             }
              });
      };

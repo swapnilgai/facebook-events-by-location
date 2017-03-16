@@ -107,6 +107,11 @@ app.get("/eventsbyids", cors(corsOptions), function(req, res) {
      } else if (!req.query.accessToken && !process.env.FEBL_ACCESS_TOKEN) {
          res.status(500).json({message: "Please specify an Access Token, either as environment variable odr as accessToken parameter!"});
      } else
+     var venueIdArray = req.query.venueIdArray.split(',');
+     var eventIdArray = req.query.eventIdArray.split(',');
+     var events = [];
+     var count = 0;
+     for(var i=0;i<venueIdArray.length; i++){
         var options = {};
         // Add latitude
         if (req.query.distance) {
@@ -132,23 +137,32 @@ app.get("/eventsbyids", cors(corsOptions), function(req, res) {
         if (req.query.until) {
             options.until = req.query.until;
         }
-        if(req.query.venueIdArray){
-          options.venueIdArray = req.query.venueIdArray;
-        }
-        if(req.query.eventIdArray){
-          options.eventIdArray = req.query.eventIdArray;
-        }
+
         if(req.query.latLanArray){
           options.latLanArray = req.query.latLanArray;
         }        var jsonStr = [];
+
+        options.venueId = venueIdArray[i];
+        options.eventId = eventIdArray[i];
+
+
         var es = new EventSearch(options);
         // Search and handle results
-        es.searchbyid().then(function (events) {
-              res.json(events);
+  //      console.error("2 :  "+eventIdArray[i]);
+        es.searchbyid().then(function (eventObj) {
 
+            count++;
+            events.push(eventObj);
+            if(count>=venueIdArray.length)
+              {
+                console.error(events);
+                  res.json(events);
+
+                }
         }).catch(function (error) {
             res.status(500).json(error);
         });
+      }
 });
 // Health check route
 app.get("/health", function(req, res) {
