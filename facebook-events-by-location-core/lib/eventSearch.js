@@ -233,31 +233,57 @@ EventSearch.prototype.search = function () {
                                 venue.events.data.forEach(function(event, index, array) {
                                     var eventResultObj = {};
                                     eventResultObj.id = event.id;
-                                    eventResultObj.name = event.name;
-                                    eventResultObj.type = event.type;
-                                    eventResultObj.coverPicture = (event.cover ? event.cover.source : null);
-                                    eventResultObj.profilePicture = (event.picture ? event.picture.data.url : null);
-                                    eventResultObj.description = (event.description ? event.description : null);
-                                    eventResultObj.distance = (venue.location ? (self.haversineDistance([venue.location.latitude, venue.location.longitude], [self.latitude, self.longitude], false)*100000).toFixed() : null);
-                                    eventResultObj.startTime = (event.start_time ? event.start_time : null);
-                                    eventResultObj.endTime = (event.end_time ? event.end_time : null);
+                                    eventResultObj.facebookEventId = event.id;
+                                    eventResultObj.eventName = event.name;
+                                    eventResultObj.eventType = event.type;
+                                    eventResultObj.eventImageUrl = (event.cover ? event.cover.source : null);
+                                  //  eventResultObj.profilePicture = (event.picture ? event.picture.data.url : null);
+                                    eventResultObj.eventDescription = (event.description ? event.description : null);
+                                    eventResultObj.eventAwayDistanve = (venue.location ? (self.haversineDistance([venue.location.latitude, venue.location.longitude], [self.latitude, self.longitude], false)*100000).toFixed() : null);
+                                    console.error("object 1  : ");
+                                    eventResultObj.dateTime = {
+                                        dateTimeFrom: (event.start_time ? event.start_time : null),
+                                        dateTimeTo: (event.end_time ? event.end_time : null),
+                                        timeZone: null
+                                    },
+                                    console.error("object 2  : ");
+
                                     eventResultObj.timeFromNow = self.calculateStarttimeDifference(currentTimestamp, event.start_time);
-                                    eventResultObj.category = (event.category ? event.category : null);
-                                    eventResultObj.stats = {
-                                        attending: event.attending_count,
-                                        declined: event.declined_count,
-                                        maybe: event.maybe_count,
-                                        noreply: event.noreply_count
-                                    };
-                                    eventResultObj.venue = {};
-                                    eventResultObj.venue.id = venueId;
-                                    eventResultObj.venue.name = venue.name;
-                                    eventResultObj.venue.about = (venue.about ? venue.about : null);
-                                    eventResultObj.venue.emails = (venue.emails ? venue.emails : null);
-                                    eventResultObj.venue.coverPicture = (venue.cover ? venue.cover.source : null);
-                                    eventResultObj.venue.profilePicture = (venue.picture ? venue.picture.data.url : null);
-                                    eventResultObj.venue.location = (venue.location ? venue.location : null);
+                                    eventResultObj.eventCategory = (event.category ? event.category : null);
+                                    console.error("object 3  : ");
+                                    // eventResultObj.stats = {
+                                    //     attending: event.attending_count,
+                                    //     declined: event.declined_count,
+                                    //     maybe: event.maybe_count,
+                                    //     noreply: event.noreply_count
+                                    // };
+
+                                      eventResultObj.eventVenueId = venueId;
+                                        console.error("object 4  : ");
+                                    // eventResultObj.venue = {};
+                                    // eventResultObj.venue.id = venueId;
+                                    eventResultObj.location = {};
+                                      console.error("object 5  : ");
+                                    eventResultObj.location.venueName = venue.name;
+                                      console.error("object 6  : ");
+                            //        eventResultObj.venue.name = venue.name;
+                                    eventResultObj.location.venueDetail = (venue.about ? venue.about : null);
+                                    console.error("object 7  : ");
+                                  //  eventResultObj.venue.about = (venue.about ? venue.about : null);
+                                  //  eventResultObj.venue.emails = (venue.emails ? venue.emails : null);
+                                    eventResultObj.location.venueId = venueId;
+                                    console.error("object 8  : ");
+                                    eventResultObj.location.venueImageUrl = (venue.cover ? venue.cover.source : null);
+                                      console.error("object 9  : ");
+
+                                    eventResultObj.location.latitude = venue.location.latitude;
+                                    console.error("object 10 lat  : "+venue.location.latitude);
+                                    eventResultObj.location.longitude = venue.location.longitude;
+                                    console.error("object 11 lang : "+venue.location.longitude);
+                                    //eventResultObj.venue.venueImageUrl = (venue.picture ? venue.picture.data.url : null);
+                                    //eventResultObj.venue.location = (venue.location ? venue.location : null);
                                     events.push(eventResultObj);
+                                    console.error("object is *  : "+eventResultObj);
                                     eventsCount++;
                                 });
                             }
@@ -366,6 +392,7 @@ EventSearch.prototype.search = function () {
                                           "declined_count",
                                           "maybe_count",
                                           "noreply_count",
+                                          "timezone",
                                           "place"
 
                                       ];
@@ -393,6 +420,7 @@ EventSearch.prototype.search = function () {
                                      eventResultObj.id = event.id;
                                      eventResultObj.name = event.name;
                                      eventResultObj.type = event.type;
+                                     eventResultObj.timezone = event.timezone;
                                      eventResultObj.coverPicture = (event.cover ? event.cover.source : null);
                                      eventResultObj.profilePicture = (event.picture ? event.picture.data.url : null);
                                      eventResultObj.description = (event.description ? event.description : null);
